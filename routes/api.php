@@ -3,113 +3,115 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-//group route with prefix "admin"
+// Group route with prefix "admin"
 Route::prefix('admin')->group(function () {
 
-    //route login
+    // Route login
     Route::post('/login', [App\Http\Controllers\Api\Admin\LoginController::class, 'index', ['as' => 'admin']]);
 
-    //group route with middleware "auth:api_admin"
+    // Group route with middleware "auth:api_admin"
     Route::group(['middleware' => 'auth:api_admin'], function() {
 
-        //data user
+        // Data user
         Route::get('/user', [App\Http\Controllers\Api\Admin\LoginController::class, 'getUser', ['as' => 'admin']]);
 
-        //refresh token JWT
+        // Refresh token JWT
         Route::get('/refresh', [App\Http\Controllers\Api\Admin\LoginController::class, 'refreshToken', ['as' => 'admin']]);
 
-        //logout
+        // Logout
         Route::post('/logout', [App\Http\Controllers\Api\Admin\LoginController::class, 'logout', ['as' => 'admin']]);
-        
-        //dashboard
+
+        // Dashboard
         Route::get('/dashboard', [App\Http\Controllers\Api\Admin\DashboardController::class, 'index', ['as' => 'admin']]);
 
-        //categories resource
+        // Categories resource
         Route::apiResource('/categories', App\Http\Controllers\Api\Admin\CategoryController::class, ['except' => ['create', 'edit'], 'as' => 'admin']);
 
-        //products resource
+        // Products resource
         Route::apiResource('/products', App\Http\Controllers\Api\Admin\ProductController::class, ['except' => ['create', 'edit'], 'as' => 'admin']);
-        
-        //invoices resource
+
+        // Invoices resource
         Route::apiResource('/invoices', App\Http\Controllers\Api\Admin\InvoiceController::class, ['except' => ['create', 'store', 'edit', 'update', 'destroy'], 'as' => 'admin']);
 
-        //customer
+        // Customer
         Route::get('/customers', [App\Http\Controllers\Api\Admin\CustomerController::class, 'index', ['as' => 'admin']]);
-        
-        //sliders resource
+
+        // Sliders resource
         Route::apiResource('/sliders', App\Http\Controllers\Api\Admin\SliderController::class, ['except' => ['create', 'show', 'edit', 'update'], 'as' => 'admin']);
-        
-        //users resource
+
+        // Users resource
         Route::apiResource('/users', App\Http\Controllers\Api\Admin\UserController::class, ['except' => ['create', 'edit'], 'as' => 'admin']);
     });
-
 });
 
-
-//group route with prefix "customer"
+// Group route with prefix "customer"
 Route::prefix('customer')->group(function () {
 
-    //route register
+    // Route register
     Route::post('/register', [App\Http\Controllers\Api\Customer\RegisterController::class, 'store'], ['as' => 'customer']);
 
-    //route login
+    // Route login
     Route::post('/login', [App\Http\Controllers\Api\Customer\LoginController::class, 'index'], ['as' => 'customer']);
 
-    //group route with middleware "auth:api_customer"
+    // Group route with middleware "auth:api_customer"
     Route::group(['middleware' => 'auth:api_customer'], function() {
 
-        //data user
+        // Data user
         Route::get('/user', [App\Http\Controllers\Api\Customer\LoginController::class, 'getUser'], ['as' => 'customer']);
 
-        //refresh token JWT
-        Route::get('/refresh', [App\Http\Controllers\Api\Customer\LoginController::class, 'refreshToken'], ['as' => 'customer']);
+        // Refresh token JWT
+        Route::get('/refresh', [App\Http\Controllers\Api\Customer\LoginController::class, 'refreshToken'], ['as' => 'customer']]);
 
-        //logout
-        Route::post('/logout', [App\Http\Controllers\Api\Customer\LoginController::class, 'logout'], ['as' => 'customer']);
-        
-        //dashboard
-        Route::get('/dashboard', [App\Http\Controllers\Api\Customer\DashboardController::class, 'index'], ['as' => 'customer']);
-        
-        //invoices resource
+        // Logout
+        Route::post('/logout', [App\Http\Controllers\Api\Customer\LoginController::class, 'logout'], ['as' => 'customer']]);
+
+        // Dashboard
+        Route::get('/dashboard', [App\Http\Controllers\Api\Customer\DashboardController::class, 'index'], ['as' => 'customer']]);
+
+        // Invoices resource
         Route::apiResource('/invoices', App\Http\Controllers\Api\Customer\InvoiceController::class, ['except' => ['create', 'store', 'edit', 'update', 'destroy'], 'as' => 'customer']);
 
-        //review
+        // Review
         Route::post('/reviews', [App\Http\Controllers\Api\Customer\ReviewController::class, 'store'], ['as' => 'customer']);
     });
-
 });
 
-//group route with prefix "web"
+// Group route with prefix "web"
 Route::prefix('web')->group(function () {
 
-    //categories resource
+    // Categories resource
     Route::apiResource('/categories', App\Http\Controllers\Api\Web\CategoryController::class, ['except' => ['create', 'store', 'edit', 'update', 'destroy'], 'as' => 'web']);
 
-    //products resource
+    // Products resource
     Route::apiResource('/products', App\Http\Controllers\Api\Web\ProductController::class, ['except' => ['create', 'store', 'edit', 'update', 'destroy'], 'as' => 'web']);
 
-    //sliders route
+    // Sliders route
     Route::get('/sliders', [App\Http\Controllers\Api\Web\SliderController::class, 'index'], ['as' => 'web']);
 
-    //rajaongkir
+    // Rajaongkir
     Route::get('/rajaongkir/provinces', [App\Http\Controllers\Api\Web\RajaOngkirController::class, 'getProvinces'], ['as' => 'web']);
     Route::post('/rajaongkir/cities', [App\Http\Controllers\Api\Web\RajaOngkirController::class, 'getCities'], ['as' => 'web']);
     Route::post('/rajaongkir/checkOngkir', [App\Http\Controllers\Api\Web\RajaOngkirController::class, 'checkOngkir'], ['as' => 'web']);
 
-    //get cart 
+    // Get cart
     Route::get('/carts', [App\Http\Controllers\Api\Web\CartController::class, 'index'], ['as' => 'web']);
-    //store cart
+
+    // Store cart
     Route::post('/carts', [App\Http\Controllers\Api\Web\CartController::class, 'store'], ['as' => 'web']);
-    //get cart price
+
+    // Get cart price
     Route::get('/carts/total_price', [App\Http\Controllers\Api\Web\CartController::class, 'getCartPrice'], ['as' => 'web']);
-    //get cart weight
+
+    // Get cart weight
     Route::get('/carts/total_weight', [App\Http\Controllers\Api\Web\CartController::class, 'getCartWeight'], ['as' => 'web']);
-    //remove cart
+
+    // Remove cart
     Route::post('/carts/remove', [App\Http\Controllers\Api\Web\CartController::class, 'removeCart'], ['as' => 'web']);
 
-    //checkout route
+    // Checkout route
     Route::post('/checkout', [App\Http\Controllers\Api\Web\CheckoutController::class, 'store'], ['as' => 'web']);
 
-    //notification handler route
+    // Notification handler route
     Route::post('/notification', [App\Http\Controllers\Api\Web\NotificationHandlerController::class, 'index'], ['as' => 'web']);
 });
+    
