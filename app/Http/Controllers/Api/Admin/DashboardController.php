@@ -15,16 +15,20 @@ class DashboardController extends Controller
      */
     public function index()
     {
-        //count invoice
+        //count invoice by status
         $pending = Invoice::where('status', 'pending')->count();
         $success = Invoice::where('status', 'success')->count();
         $expired = Invoice::where('status', 'expired')->count();
         $failed  = Invoice::where('status', 'failed')->count();
 
-        //yearth
-        $year   = date('Y');
+        //year
+        $year = date('Y');
 
-        //chart 
+        //initialize arrays
+        $month_name = [];
+        $grand_total = [];
+
+        //chart data 
         $transactions = DB::table('invoices')
             ->addSelect(DB::raw('SUM(grand_total) as grand_total'))
             ->addSelect(DB::raw('MONTH(created_at) as month'))
@@ -32,18 +36,17 @@ class DashboardController extends Controller
             ->addSelect(DB::raw('YEAR(created_at) as year'))
             ->whereYear('created_at', '=', $year)
             ->where('status', 'success')
-            ->groupBy('month')
+            ->groupBy('month', 'month_name', 'year') // Added all grouped columns for MySQL 5.7+ compatibility
             ->orderByRaw('month ASC')
             ->get();
-        if(count($transactions)) {
+
+        //populate arrays if data exists
+        if($transactions->count() > 0) {
             foreach ($transactions as $result) {
-                $month_name[]    = $result->month_name;
-                $grand_total[]   = (int)$result->grand_total;
+                $month_name[]  = $result->month_name;
+                $grand_total[] = (int)$result->grand_total;
             }
-        }else {
-            $month_name[]   = "";
-            $grand_total[]  = "";
-        } 
+        }
 
         //response 
         return response()->json([
@@ -51,14 +54,14 @@ class DashboardController extends Controller
             'message' => 'Statistik Data',  
             'data'    => [
                 'count' => [
-                    'pending'   => $pending,
-                    'success'   => $success,
-                    'expired'   => $expired,
-                    'failed'    => $failed
+                    'pending' => $pending,
+                    'success' => $success,
+                    'expired' => $expired,
+                    'failed'  => $failed
                 ],
                 'chart' => [
-                    'month_name'    => $month_name,
-                    'grand_total'   => $grand_total
+                    'month_name'  => $month_name,
+                    'grand_total' => $grand_total
                 ]
             ]  
         ], 200);
