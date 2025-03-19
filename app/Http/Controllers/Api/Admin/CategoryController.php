@@ -101,8 +101,22 @@ class CategoryController extends Controller
             return response()->json($validator->errors(), 422);
         }
 
+        // Prepare update data
+        $updateData = [
+            'name' => $request->name,
+            'slug' => Str::slug($request->name, '-'),
+        ];
+
         //check image update
         if ($request->file('image')) {
+            // Validate image
+            $imageValidator = Validator::make($request->all(), [
+                'image' => 'image|mimes:jpeg,jpg,png|max:2000',
+            ]);
+
+            if ($imageValidator->fails()) {
+                return response()->json($imageValidator->errors(), 422);
+            }
 
             //remove old image
             Storage::disk('local')->delete('public/categories/'.basename($category->image));
@@ -111,20 +125,12 @@ class CategoryController extends Controller
             $image = $request->file('image');
             $image->storeAs('public/categories', $image->hashName());
 
-            //update category with new image
-            $category->update([
-                'image'=> $image->hashName(),
-                'name' => $request->name,
-                'slug' => Str::slug($request->name, '-'),
-            ]);
-
+            //add image to update data
+            $updateData['image'] = $image->hashName();
         }
 
-        //update category without image
-        $category->update([
-            'name' => $request->name,
-            'slug' => Str::slug($request->name, '-'),
-        ]);
+        //update category
+        $category->update($updateData);
 
         if($category) {
             //return success with Api Resource
