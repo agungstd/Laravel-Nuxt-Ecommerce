@@ -22,7 +22,7 @@ class ProductController extends Controller
         //get products
         $products = Product::with('category')->when(request()->q, function($products) {
             $products = $products->where('title', 'like', '%'. request()->q . '%');
-        })->latest()->paginate(5);
+        })->latest()->paginate(request()->per_page ?? 5);
         
         //return with Api Resource
         return new ProductResource(true, 'List Data Products', $products);
@@ -86,7 +86,7 @@ class ProductController extends Controller
      */
     public function show($id)
     {
-        $product = Product::whereId($id)->first();
+        $product = Product::with('category')->whereId($id)->first();
         
         if($product) {
             //return success with Api Resource
@@ -120,34 +120,8 @@ class ProductController extends Controller
             return response()->json($validator->errors(), 422);
         }
 
-        //check image update
-        if ($request->file('image')) {
-
-            //remove old image
-            Storage::disk('local')->delete('public/products/'.basename($product->image));
-        
-            //upload new image
-            $image = $request->file('image');
-            $image->storeAs('public/products', $image->hashName());
-
-            //update product with new image
-            $product->update([
-                'image'         => $image->hashName(),
-                'title'         => $request->title,
-                'slug'          => Str::slug($request->title, '-'),
-                'category_id'   => $request->category_id,
-                'user_id'       => auth()->guard('api_admin')->user()->id,
-                'description'   => $request->description,
-                'weight'        => $request->weight,
-                'price'         => $request->price,
-                'stock'         => $request->stock,
-                'discount'      => $request->discount
-            ]);
-
-        }
-
-        //update product without image
-        $product->update([
+        // Prepare update data
+        $updateData = [
             'title'         => $request->title,
             'slug'          => Str::slug($request->title, '-'),
             'category_id'   => $request->category_id,
@@ -157,7 +131,32 @@ class ProductController extends Controller
             'price'         => $request->price,
             'stock'         => $request->stock,
             'discount'      => $request->discount
-        ]);
+        ];
+
+        //check image update
+        if ($request->file('image')) {
+            // Validate image
+            $imageValidator = Validator::make($request->all(), [
+                'image' => 'image|mimes:jpeg,jpg,png|max:2000',
+            ]);
+
+            if ($imageValidator->fails()) {
+                return response()->json($imageValidator->errors(), 422);
+            }
+
+            //remove old image
+            Storage::disk('local')->delete('public/products/'.basename($product->image));
+        
+            //upload new image
+            $image = $request->file('image');
+            $image->storeAs('public/products', $image->hashName());
+
+            //add image to update data
+            $updateData['image'] = $image->hashName();
+        }
+
+        //update product with single operation
+        $product->update($updateData);
 
         if($product) {
             //return success with Api Resource
