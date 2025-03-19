@@ -20,7 +20,7 @@ class SliderController extends Controller
     {
         //get sliders
         $sliders = Slider::latest()->paginate(5);
-        
+       
         //return with Api Resource
         return new SliderResource(true, 'List Data Sliders', $sliders);
     }
@@ -34,49 +34,101 @@ class SliderController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'image'    => 'required|image|mimes:jpeg,jpg,png|max:2000',
+            'image' => 'required|image|mimes:jpeg,jpg,png|max:2000',
+            'link'  => 'nullable|url'
         ]);
 
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);
         }
 
-        //upload image
-        $image = $request->file('image');
-        $image->storeAs('public/sliders', $image->hashName());
+        try {
+            //upload image
+            $image = $request->file('image');
+            $image->storeAs('public/sliders', $image->hashName());
 
-        //create slider
-        $slider = Slider::create([
-            'image'=> $image->hashName(),
-            'link' => $request->link,
-        ]);
+            //create slider
+            $slider = Slider::create([
+                'image' => $image->hashName(),
+                'link'  => $request->link,
+            ]);
 
-        if($slider) {
             //return success with Api Resource
             return new SliderResource(true, 'Data Slider Berhasil Disimpan!', $slider);
+        } catch (\Exception $e) {
+            //return failed with Api Resource
+            return new SliderResource(false, 'Data Slider Gagal Disimpan: ' . $e->getMessage(), null);
         }
-
-        //return failed with Api Resource
-        return new SliderResource(false, 'Data Slider Gagal Disimpan!', null);
     }
 
-        /**
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Models\Slider  $slider
+     * @return \Illuminate\Http\Response
+     */
+    public function update(Request $request, Slider $slider)
+    {
+        $validator = Validator::make($request->all(), [
+            'image' => 'nullable|image|mimes:jpeg,jpg,png|max:2000',
+            'link'  => 'nullable|url'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        try {
+            //check if image is uploaded
+            if ($request->hasFile('image')) {
+                //delete old image
+                Storage::disk('local')->delete('public/sliders/'.basename($slider->image));
+                
+                //upload new image
+                $image = $request->file('image');
+                $image->storeAs('public/sliders', $image->hashName());
+                
+                //update slider with new image
+                $slider->update([
+                    'image' => $image->hashName(),
+                    'link'  => $request->link ?? $slider->link,
+                ]);
+            } else {
+                //update slider without image
+                $slider->update([
+                    'link' => $request->link ?? $slider->link,
+                ]);
+            }
+            
+            //return success with Api Resource
+            return new SliderResource(true, 'Data Slider Berhasil Diupdate!', $slider);
+        } catch (\Exception $e) {
+            //return failed with Api Resource
+            return new SliderResource(false, 'Data Slider Gagal Diupdate: ' . $e->getMessage(), null);
+        }
+    }
+
+    /**
      * Remove the specified resource from storage.
      *
-     * @param  int  $id
+     * @param  \App\Models\Slider  $slider
      * @return \Illuminate\Http\Response
      */
     public function destroy(Slider $slider)
     {
-        //remove image
-        Storage::disk('local')->delete('public/sliders/'.basename($slider->image));
-
-        if($slider->delete()) {
+        try {
+            //remove image
+            Storage::disk('local')->delete('public/sliders/'.basename($slider->image));
+            
+            //delete slider
+            $slider->delete();
+            
             //return success with Api Resource
             return new SliderResource(true, 'Data Slider Berhasil Dihapus!', null);
+        } catch (\Exception $e) {
+            //return failed with Api Resource
+            return new SliderResource(false, 'Data Slider Gagal Dihapus: ' . $e->getMessage(), null);
         }
-
-        //return failed with Api Resource
-        return new SliderResource(false, 'Data Slider Gagal Dihapus!', null);
     }
 }
