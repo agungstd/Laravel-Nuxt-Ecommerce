@@ -36,28 +36,28 @@ class UserController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name'     => 'required',
-            'email'    => 'required|unique:users',
-            'password' => 'required|confirmed' 
+            'email'    => 'required|email|unique:users',
+            'password' => 'required|confirmed|min:6' 
         ]);
 
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);
         }
 
-        //create user
-        $user = User::create([
-            'name'      => $request->name,
-            'email'     => $request->email,
-            'password'  => bcrypt($request->password)
-        ]);
+        try {
+            //create user
+            $user = User::create([
+                'name'      => $request->name,
+                'email'     => $request->email,
+                'password'  => bcrypt($request->password)
+            ]);
 
-        if($user) {
             //return success with Api Resource
             return new UserResource(true, 'Data User Berhasil Disimpan!', $user);
+        } catch (\Exception $e) {
+            //return failed with Api Resource
+            return new UserResource(false, 'Data User Gagal Disimpan: ' . $e->getMessage(), null);
         }
-
-        //return failed with Api Resource
-        return new UserResource(false, 'Data User Gagal Disimpan!', null);
     }
 
     /**
@@ -76,7 +76,7 @@ class UserController extends Controller
         }
 
         //return failed with Api Resource
-        return new UserResource(false, 'Detail Data User Tidak DItemukan!', null);
+        return new UserResource(false, 'Detail Data User Tidak Ditemukan!', null);
     }
 
     /**
@@ -90,37 +90,36 @@ class UserController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name'     => 'required',
-            'email'    => 'required|unique:users,email,'.$user->id,
-            'password' => 'confirmed'
+            'email'    => 'required|email|unique:users,email,'.$user->id,
+            'password' => 'nullable|confirmed|min:6'
         ]);
 
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);
         }
 
-        if($request->password == "") {
+        try {
+            if($request->password == "") {
+                //update user without password
+                $user->update([
+                    'name'  => $request->name,
+                    'email' => $request->email,
+                ]);
+            } else {
+                //update user with new password
+                $user->update([
+                    'name'     => $request->name,
+                    'email'    => $request->email,
+                    'password' => bcrypt($request->password)
+                ]);
+            }
 
-            //update user without password
-            $user->update([
-                'name'      => $request->name,
-                'email'     => $request->email,
-            ]);
-        }
-
-        //update user with new password
-        $user->update([
-            'name'      => $request->name,
-            'email'     => $request->email,
-            'password'  => bcrypt($request->password)
-        ]);
-
-        if($user) {
             //return success with Api Resource
             return new UserResource(true, 'Data User Berhasil Diupdate!', $user);
+        } catch (\Exception $e) {
+            //return failed with Api Resource
+            return new UserResource(false, 'Data User Gagal Diupdate: ' . $e->getMessage(), null);
         }
-
-        //return failed with Api Resource
-        return new UserResource(false, 'Data User Gagal Diupdate!', null);
     }
 
     /**
@@ -131,12 +130,15 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
-        if($user->delete()) {
+        try {
+            //delete user
+            $user->delete();
+            
             //return success with Api Resource
             return new UserResource(true, 'Data User Berhasil Dihapus!', null);
+        } catch (\Exception $e) {
+            //return failed with Api Resource
+            return new UserResource(false, 'Data User Gagal Dihapus: ' . $e->getMessage(), null);
         }
-
-        //return failed with Api Resource
-        return new UserResource(false, 'Data User Gagal Dihapus!', null);
     }
 }
